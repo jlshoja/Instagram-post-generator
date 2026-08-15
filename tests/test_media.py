@@ -67,3 +67,28 @@ def test_missing_source_image_fails(config, db, product_id):
     ok, err = opt.optimize_product(product_id)
     assert not ok
     assert "no optimized images" in err
+
+
+def test_dead_404_urls_marked_deleted(config, db, product_id, monkeypatch):
+    seed_media(db, product_id)
+
+    def _fake_404(url):
+        class R:
+            status_code = 404
+            content = b""
+            headers = {"content-type": "text/html"}
+        return R()
+
+    http = HttpClient(config)
+    monkeypatch.setattr(http, "get", lambda url, **kw: _fake_404(url))
+
+    dl = MediaDownloader(config, db, http)
+    ok, _err = dl.download_product(product_id)
+    assert not ok
+    rows = db.query("SELECT * FROM media_files WHERE product_id=?", (product_id,))
+    assert rows and all(r["status"] == "deleted" for r in rows)
+
+    # a later scan must not re-query / retry the dead URLs
+    dl.download_product(product_id)
+    rows = db.query("SELECT * FROM media_files WHERE product_id=?", (product_id,))
+    assert all(r["status"] == "deleted" for r in rows)

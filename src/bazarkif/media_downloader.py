@@ -74,10 +74,18 @@ class MediaDownloader:
         url = row["source_url"]
         try:
             resp = self.http.get(url)
-            if resp.status_code >= 400 or not resp.content:
-                return False
         except Exception as e:
             logger.warning("media fetch error", extra={"url": url, "error": str(e)})
+            return False
+        if resp.status_code in (404, 410):
+            # permanently gone (e.g. stale raw-content links on the site):
+            # mark dead so it is never retried on later scans
+            self.db.execute(
+                "UPDATE media_files SET status=? WHERE id=?",
+                (MediaStatus.DELETED.value, row["id"]),
+            )
+            return False
+        if resp.status_code >= 400 or not resp.content:
             return False
 
         dest_dir = self.config.media_root / "download" / str(row["product_id"])
