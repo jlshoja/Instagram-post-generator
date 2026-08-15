@@ -51,17 +51,28 @@ python -m bazarkif.cli daemon
    cd Instagram-post-generator
    ```
    `.env`, `venv/`, `logs/`, `.media/` are git-ignored. **`data/mapping/pricing_sample.csv` is tracked**, so a fresh clone already has the pricing rules.
-2. On Windows: `py -3.12 -m venv venv && venv\Scripts\pip install -r requirements.txt`.
-   Then copy `config.example.env` to `.env` and fill in the Telegram values — the app **auto-loads `.env`** (no `source` needed on Windows).
-3. Run via `run.bat` (creates venv + installs deps + checks Telegram on first use):
-   - `run.bat fresh` — resets the database + media, then full first run: all ~326
-     products are downloaded, priced, and sent to the Pending Posts topic.
-     (Fresh resets only the DB/media; the tracked pricing file is preserved.)
-   - `run.bat` — subsequent full update + publish.
-   - `run.bat retry` — force-retry all failed jobs; `run.bat resume` — retry only due ones.
-   - `run.bat until <stage>` — partial/resumable runs (detail | media | optimize | post).
-   - `run.bat dry` — build posts without sending; `run.bat publish` — send drafts only.
-   - `run.bat sample [N]` — quick test with N products.
+2. Copy the ready `.env` from the VPS (has the real Telegram token), run from the
+   project folder:
+   ```powershell
+   scp root@91.239.211.45:/home/root/projects/Instagram-post-generator/.env .env
+   ```
+   Or create `.env` by hand from `config.example.env` — the app **auto-loads
+   `.env`** (no `source` needed on Windows).
+3. First full download. If your network blocks PyPI, the bundled `first-run.bat`
+   sets the Iranian mirror automatically — **double-click `first-run.bat`**, or
+   from PowerShell:
+   ```powershell
+   $env:PIP_INDEX_URL="https://mirror-pypi.runflare.com/simple"
+   .\run.bat fresh
+   ```
+   `run.bat` creates the venv, installs deps, and validates Telegram on first
+   use. `fresh` resets only the DB/media; the tracked pricing file is preserved.
+4. Day-to-day (PowerShell, note the `.\` prefix):
+   - `.\run.bat` — subsequent full update + publish.
+   - `.\run.bat retry` — force-retry all failed jobs; `.\run.bat resume` — retry only due ones.
+   - `.\run.bat until <stage>` — partial/resumable runs (detail | media | optimize | post).
+   - `.\run.bat dry` — build posts without sending; `.\run.bat publish` — send drafts only.
+   - `.\run.bat sample [N]` — quick test with N products.
 
 ## Deployment (Phase 3 — Ubuntu VPS + Docker)
 

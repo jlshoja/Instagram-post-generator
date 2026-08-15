@@ -52,7 +52,7 @@ $env:PIP_INDEX_URL="https://mirror-pypi.runflare.com/simple"
 ```
 
 1. `git pull` — get the latest scripts (if `git log --oneline -1` doesn't print
-   a recent `e6d274a` or newer commit, the pull didn't run — re-run it).
+   a recent commit hash, the pull didn't run — re-run it).
 2. The `$env:PIP_INDEX_URL=...` line points pip at an **Iranian mirror** because
    `pythonhosted.org` is blocked/slow on this network. It only applies to the
    current PowerShell window.
@@ -103,8 +103,8 @@ scp root@91.239.211.45:/home/root/projects/Instagram-post-generator/.env .env
 
 ### 3. Do the full first download
 
-```bat
-run.bat fresh
+```powershell
+.\run.bat fresh
 ```
 
 This one command:
