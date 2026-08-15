@@ -5,6 +5,7 @@ cd /d "%~dp0"
 echo ============================================================
 echo   LUXBAZ Instagram Post Generator
 echo ============================================================
+echo on
 
 rem ---- mode selection -------------------------------------------------
 set MODE=%1
@@ -42,7 +43,7 @@ if not exist venv\Scripts\python.exe (
 )
 
 rem install deps if missing (also retries after a failed first install)
-venv\Scripts\python -c "import requests,bs4,PIL,apscheduler" >nul 2>&1
+venv\Scripts\python check_setup.py deps >nul 2>&1
 if errorlevel 1 (
     echo [setup] installing dependencies...
     venv\Scripts\python -m pip install -r requirements.txt
@@ -59,24 +60,24 @@ if errorlevel 1 (
 )
 
 rem ---- 2. .env --------------------------------------------------------
-if not exist ".env" (
-    echo [setup] creating .env from config.example.env
-    copy config.example.env ".env" >nul
-    echo.
-    echo [WARN]  A fresh .env was created. You MUST edit it and set:
-    echo        TELEGRAM_BOT_TOKEN=your_bot_token
-    echo        TELEGRAM_CHAT_ID=-100xxxxxxxxx
-    echo        TELEGRAM_THREAD_PENDING=6
-    echo        then re-run.
-    echo.
-    pause
-    exit /b 1
-)
+if exist ".env" goto :env_ok
+echo [setup] creating .env from config.example.env
+copy config.example.env ".env" >nul
+echo.
+echo [WARN]  A fresh .env was created. You MUST edit it and set:
+echo        TELEGRAM_BOT_TOKEN=your_bot_token
+echo        TELEGRAM_CHAT_ID=-100xxxxxxxxx
+echo        TELEGRAM_THREAD_PENDING=6
+echo        then re-run.
+echo.
+pause
+exit /b 1
+:env_ok
 
 set PYTHONPATH=src
 
 rem ---- 3. telegram config check ---------------------------------------
-venv\Scripts\python -c "import sys;sys.path.insert(0,'src');from bazarkif.config import Config;c=Config.from_env();raise SystemExit(0 if (c.telegram_bot_token and c.telegram_chat_id) else 1)"
+venv\Scripts\python check_setup.py telegram >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] Telegram is not configured. Edit .env (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).
     pause
