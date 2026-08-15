@@ -193,23 +193,19 @@ exit /b 0
 :menu
 echo.
 echo  Select a mode:
-echo   1) update          6) publish
-echo   2) fresh           7) sample (3 products)
-echo   3) dry             8) until publish
-echo   4) resume          9) daemon
-echo   5) retry           0) exit
+echo   1) update     normal daily scan + publish
+echo   2) fresh      clean re-download of everything
+echo   3) retry      retry all failed items
+echo   0) exit
 echo.
-choice /c 0123456789 /n /m "  Pick a number (0-9): "
-if errorlevel 10 goto :m_daemon
-if errorlevel 9  goto :m_until
-if errorlevel 8  goto :m_sample
-if errorlevel 7  goto :m_publish
-if errorlevel 6  goto :m_retry
-if errorlevel 5  goto :m_resume
-if errorlevel 4  goto :m_dry
-if errorlevel 3  goto :m_fresh
-if errorlevel 2  goto :m_update
-if errorlevel 1  goto :m_exit
+echo  Advanced modes are still available as arguments:
+echo  run.bat dry / resume / publish / sample / until / daemon
+echo.
+choice /c 0123 /n /m "  Pick a number (0-3): "
+if errorlevel 4 goto :m_retry
+if errorlevel 3 goto :m_fresh
+if errorlevel 2 goto :m_update
+if errorlevel 1 goto :m_exit
 goto :menu
 
 :m_update
@@ -218,27 +214,8 @@ goto :eof
 :m_fresh
 set MODE=fresh
 goto :eof
-:m_dry
-set MODE=dry
-goto :eof
-:m_resume
-set MODE=resume
-goto :eof
 :m_retry
 set MODE=retry
-goto :eof
-:m_publish
-set MODE=publish
-goto :eof
-:m_sample
-set MODE=sample
-goto :eof
-:m_until
-set MODE=until
-set ARG2=publish
-goto :eof
-:m_daemon
-set MODE=daemon
 goto :eof
 :m_exit
 set MODE=exit
