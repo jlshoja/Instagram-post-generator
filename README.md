@@ -22,7 +22,7 @@ PYTHONPATH=src ./venv/bin/python -m bazarkif.cli run-once          # dry-run
 PYTHONPATH=src ./venv/bin/python -m bazarkif.cli --publish run-once  # to Pending Posts
 ```
 
-Runbook: `docs/09-runbook.md`.
+Runbook: `docs/09-runbook.md`. Windows setup & daily use: `docs/10-user-guide.md`.
 
 ## Pipeline
 
