@@ -69,6 +69,34 @@ def test_missing_source_image_fails(config, db, product_id):
     assert "no optimized images" in err
 
 
+def test_non_ascii_url_percent_encoded(config, db, product_id, monkeypatch):
+    seed_media(db, product_id)
+    persian_url = IMG_1.replace("photo_1.jpg", "لینک-تصاویر-گالری_1.jpg")
+    row = db.query(
+        "SELECT id FROM media_files WHERE product_id=? AND kind='gallery' LIMIT 1",
+        (product_id,),
+    )[0]
+    db.execute("UPDATE media_files SET source_url=? WHERE id=?", (persian_url, row["id"]))
+
+    seen = []
+
+    def _fake_http(url, **kw):
+        seen.append(url)
+        class R:
+            status_code = 200
+            content = _png_bytes()
+            headers = {"content-type": "image/png"}
+        return R()
+
+    http = HttpClient(config)
+    monkeypatch.setattr(http, "get", _fake_http)
+    ok, _err = MediaDownloader(config, db, http).download_product(product_id)
+    assert ok
+    assert seen
+    assert "%D9" in seen[0]  # percent-encoded UTF-8 Persian
+    assert "ل" not in seen[0]  # no raw non-ascii bytes sent
+
+
 def test_dead_404_urls_marked_deleted(config, db, product_id, monkeypatch):
     seed_media(db, product_id)
 

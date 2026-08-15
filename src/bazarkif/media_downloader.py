@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 from .db import Database
 from .http_client import HttpClient
@@ -72,8 +72,11 @@ class MediaDownloader:
 
     def _download_one(self, row) -> bool:
         url = row["source_url"]
+        # percent-encode explicitly so non-ASCII (Persian) filenames are sent
+        # in exactly the form the CDN expects regardless of proxy/urllib3 IRI handling
+        request_url = quote(url, safe=":/?&=%")
         try:
-            resp = self.http.get(url)
+            resp = self.http.get(request_url)
         except Exception as e:
             logger.warning("media fetch error", extra={"url": url, "error": str(e)})
             return False
