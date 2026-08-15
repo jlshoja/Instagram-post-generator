@@ -1,4 +1,5 @@
 import logging
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .change_notifier import ChangeNotifier
@@ -143,6 +144,10 @@ class Scanner:
                 "sample mode: processing %d of %d at stage %s",
                 len(ids), self.config.sample_limit, stage,
             )
+        total = len(ids)
+        logger.info("stage %s: processing %d products", stage, total)
+        lock = threading.Lock()
+        done = 0
         with ThreadPoolExecutor(max_workers=self.config.workers) as pool:
             futures = {pool.submit(worker, pid): pid for pid in ids}
             for fut in as_completed(futures):
@@ -152,6 +157,10 @@ class Scanner:
                 except Exception as e:
                     logger.exception("stage worker error", extra={"product_id": pid, "stage": stage, "error": str(e)})
                     self.retry.record_failure(pid, stage, str(e))
+                with lock:
+                    done += 1
+                if done == total or done % 25 == 0:
+                    logger.info("stage %s progress: %d/%d", stage, done, total)
 
     def _mark_unavailable_removed(self) -> None:
         """Products previously active but no longer present in the fresh
