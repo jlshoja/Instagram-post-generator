@@ -5,7 +5,6 @@ cd /d "%~dp0"
 echo ============================================================
 echo   LUXBAZ Instagram Post Generator
 echo ============================================================
-echo on
 
 rem ---- mode selection -------------------------------------------------
 set MODE=%1
@@ -51,7 +50,7 @@ if errorlevel 1 (
         echo [ERROR] pip install failed.
         echo          If PyPI is blocked, set PIP_INDEX_URL first, e.g.:
         echo          $env:PIP_INDEX_URL="https://mirror-pypi.runflare.com/simple"
-        echo          then re-run. (or double-click first-run.bat)
+        echo          then re-run, or double-click first-run.bat.
         pause
         exit /b 1
     )
@@ -79,7 +78,7 @@ set PYTHONPATH=src
 rem ---- 3. telegram config check ---------------------------------------
 venv\Scripts\python check_setup.py telegram >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Telegram is not configured. Edit .env (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).
+    echo [ERROR] Telegram is not configured. Edit .env - TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID.
     pause
     exit /b 1
 )
@@ -101,7 +100,7 @@ if /i "%MODE%"=="update" (
 )
 
 if /i "%MODE%"=="dry" (
-    echo [run] scan + build posts only (NOT publishing to Telegram)...
+    echo [run] scan + build posts only - NOT publishing to Telegram...
     venv\Scripts\python -m bazarkif.cli run-once
     goto :done
 )
@@ -119,14 +118,15 @@ if /i "%MODE%"=="retry" (
 )
 
 if /i "%MODE%"=="publish" (
-    echo [run] send drafted POST_GENERATED cards to Telegram (no scan)...
+    echo [run] send drafted POST_GENERATED cards to Telegram - no scan...
     venv\Scripts\python -m bazarkif.cli publish
     goto :done
 )
 
 if /i "%MODE%"=="sample" (
-    if "%ARG2%"=="" (set SAMPLE=3) else (set SAMPLE=%ARG2%)
-    echo [run] test mode: only %SAMPLE% product(s), update + publish...
+    set SAMPLE=3
+    if not "%ARG2%"=="" set SAMPLE=%ARG2%
+    echo [run] test mode: only %SAMPLE% products, update + publish...
     set SAMPLE_LIMIT=%SAMPLE%
     venv\Scripts\python -m bazarkif.cli --publish run-once
     goto :done
@@ -137,14 +137,14 @@ if /i "%MODE%"=="until" (
         echo [run] partial run up to publish + publish...
         venv\Scripts\python -m bazarkif.cli --publish --until publish run-once
     ) else (
-        echo [run] partial run up to stage %ARG2% (no publish)...
+        echo [run] partial run up to stage %ARG2% - no publish...
         venv\Scripts\python -m bazarkif.cli --until %ARG2% run-once
     )
     goto :done
 )
 
 if /i "%MODE%"=="daemon" (
-    echo [run] scheduler daemon (Ctrl+C to stop)...
+    echo [run] scheduler daemon - Ctrl+C to stop...
     venv\Scripts\python -m bazarkif.cli daemon
     goto :done
 )
