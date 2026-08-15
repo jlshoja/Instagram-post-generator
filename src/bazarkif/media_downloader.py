@@ -44,8 +44,11 @@ class MediaDownloader:
             if row["status"] == "downloaded" and Path(row["local_path"]).exists():
                 image_ok += 1
                 continue
-            if self._download_one(row):
+            res = self._download_one(row)
+            if res is True:
                 image_ok += 1
+            elif res == "gone":
+                pass
             else:
                 logger.warning("media download failed", extra={"product_id": product_id, "url": row["source_url"]})
 
@@ -53,7 +56,10 @@ class MediaDownloader:
             if row["kind"] == MediaKind.VIDEO.value:
                 if row["status"] == "downloaded" and Path(row["local_path"]).exists():
                     continue
-                if not self._download_one(row):
+                res = self._download_one(row)
+                if res == "gone":
+                    pass
+                elif not res:
                     logger.warning("video download failed", extra={"product_id": product_id, "url": row["source_url"]})
 
         # the card needs at least one image; individual file failures do not
@@ -71,7 +77,7 @@ class MediaDownloader:
         )
         return True, None
 
-    def _download_one(self, row) -> bool:
+    def _download_one(self, row) -> bool | str:
         url = row["source_url"]
         # percent-encode explicitly so non-ASCII (Persian) filenames are sent
         # in exactly the form the CDN expects regardless of proxy/urllib3 IRI handling
@@ -99,7 +105,8 @@ class MediaDownloader:
                 "UPDATE media_files SET status=? WHERE id=?",
                 (MediaStatus.DELETED.value, row["id"]),
             )
-            return False
+            logger.debug("media permanently gone (404/410); marked deleted", extra={"url": url})
+            return "gone"
         if resp.status_code >= 400 or not resp.content:
             return False
 
