@@ -12,6 +12,16 @@ def _env_bool(key: str, default: bool = False) -> bool:
     return val.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _env_int(key: str, default: int) -> int:
+    val = os.environ.get(key)
+    if val is None or val.strip() == "":
+        return default
+    try:
+        return int(val)
+    except ValueError:
+        return default
+
+
 @dataclass
 class Config:
     base_url: str = "https://bazarkif.org"
@@ -49,6 +59,10 @@ class Config:
     image_max_dimension: int = 1080
     orphan_retention_hours: float = 24.0
 
+    # pricing (benefit increase applied to the price before publishing)
+    pricing_file: Path = field(default_factory=lambda: PROJECT_ROOT / "data" / "mapping" / "pricing_sample.csv")
+    pricing_enabled: bool = True
+
     # telegram
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
@@ -69,43 +83,32 @@ class Config:
         c.media_root = Path(os.environ.get("MEDIA_ROOT", str(c.media_root)))
         c.log_dir = Path(os.environ.get("LOG_DIR", str(c.log_dir)))
 
-        c.request_timeout = int(os.environ.get("REQUEST_TIMEOUT", c.request_timeout))
-        c.request_delay = float(os.environ.get("REQUEST_DELAY", c.request_delay))
-        c.workers = int(os.environ.get("WORKERS", c.workers))
-        c.concurrency_download = int(
-            os.environ.get("CONCURRENCY_DOWNLOAD", c.concurrency_download)
-        )
-        c.sample_limit = int(os.environ.get("SAMPLE_LIMIT", c.sample_limit))
+        c.request_timeout = _env_int("REQUEST_TIMEOUT", c.request_timeout)
+        c.request_delay = float(os.environ.get("REQUEST_DELAY", c.request_delay) or c.request_delay)
+        c.workers = _env_int("WORKERS", c.workers)
+        c.concurrency_download = _env_int("CONCURRENCY_DOWNLOAD", c.concurrency_download)
+        c.sample_limit = _env_int("SAMPLE_LIMIT", c.sample_limit)
 
-        c.scan_interval_minutes = int(
-            os.environ.get("SCAN_INTERVAL_MINUTES", c.scan_interval_minutes)
-        )
+        c.scan_interval_minutes = _env_int("SCAN_INTERVAL_MINUTES", c.scan_interval_minutes)
         c.enable_scheduler = _env_bool("ENABLE_SCHEDULER", c.enable_scheduler)
 
-        c.max_attempts = int(os.environ.get("MAX_ATTEMPTS", c.max_attempts))
-        c.retry_base_delay = float(
-            os.environ.get("RETRY_BASE_DELAY", c.retry_base_delay)
-        )
-        c.retry_max_delay = float(os.environ.get("RETRY_MAX_DELAY", c.retry_max_delay))
-        c.retry_factor = float(os.environ.get("RETRY_FACTOR", c.retry_factor))
+        c.max_attempts = _env_int("MAX_ATTEMPTS", c.max_attempts)
+        c.retry_base_delay = float(os.environ.get("RETRY_BASE_DELAY", c.retry_base_delay) or c.retry_base_delay)
+        c.retry_max_delay = float(os.environ.get("RETRY_MAX_DELAY", c.retry_max_delay) or c.retry_max_delay)
+        c.retry_factor = float(os.environ.get("RETRY_FACTOR", c.retry_factor) or c.retry_factor)
 
-        c.webp_target_bytes = int(os.environ.get("WEBP_TARGET_BYTES", c.webp_target_bytes))
-        c.image_max_dimension = int(
-            os.environ.get("IMAGE_MAX_DIMENSION", c.image_max_dimension)
-        )
+        c.webp_target_bytes = _env_int("WEBP_TARGET_BYTES", c.webp_target_bytes)
+        c.image_max_dimension = _env_int("IMAGE_MAX_DIMENSION", c.image_max_dimension)
+
+        c.pricing_file = Path(os.environ.get("PRICING_FILE", str(c.pricing_file)))
+        c.pricing_enabled = _env_bool("PRICING_ENABLED", c.pricing_enabled)
 
         c.telegram_bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", c.telegram_bot_token)
         c.telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID", c.telegram_chat_id)
-        c.thread_pending_posts = int(
-            os.environ.get("TELEGRAM_THREAD_PENDING", c.thread_pending_posts)
-        )
-        c.thread_published_posts = int(
-            os.environ.get("TELEGRAM_THREAD_PUBLISHED", c.thread_published_posts)
-        )
-        c.thread_changes = int(os.environ.get("TELEGRAM_THREAD_CHANGES", c.thread_changes))
-        c.thread_failed_jobs = int(
-            os.environ.get("TELEGRAM_THREAD_FAILED", c.thread_failed_jobs)
-        )
+        c.thread_pending_posts = _env_int("TELEGRAM_THREAD_PENDING", c.thread_pending_posts)
+        c.thread_published_posts = _env_int("TELEGRAM_THREAD_PUBLISHED", c.thread_published_posts)
+        c.thread_changes = _env_int("TELEGRAM_THREAD_CHANGES", c.thread_changes)
+        c.thread_failed_jobs = _env_int("TELEGRAM_THREAD_FAILED", c.thread_failed_jobs)
 
         c.require_gallery = _env_bool("REQUIRE_GALLERY", c.require_gallery)
         c.log_level = os.environ.get("LOG_LEVEL", c.log_level)

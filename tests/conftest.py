@@ -67,6 +67,7 @@ def config(tmp_path) -> Config:
     c.thread_pending_posts = 11
     c.thread_changes = 12
     c.thread_failed_jobs = 13
+    c.pricing_enabled = False
     return c
 
 

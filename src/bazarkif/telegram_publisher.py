@@ -23,21 +23,33 @@ class TelegramPublisher:
     def enabled(self) -> bool:
         return bool(self.config.telegram_bot_token and self.config.telegram_chat_id)
 
-    def _post(self, method: str, **data):
+    def _post(self, method: str, files=None, **data):
         url = self.base + method
+        last_err = None
         for attempt in range(1, 5):
-            resp = self.session.post(url, data=data, timeout=60)
+            try:
+                resp = self.session.post(url, data=data, files=files, timeout=120)
+            except requests.RequestException as e:
+                last_err = str(e)
+                time.sleep(2 * attempt)
+                continue
             if resp.status_code == 429:
                 retry_after = resp.json().get("parameters", {}).get("retry_after", 5)
                 logger.warning("telegram 429, waiting %ss", retry_after)
                 time.sleep(min(retry_after, 30))
                 continue
-            resp.raise_for_status()
+            if resp.status_code >= 400:
+                body = resp.text[:500]
+                last_err = f"HTTP {resp.status_code}: {body}"
+                time.sleep(2 * attempt)
+                continue
             body = resp.json()
             if not body.get("ok"):
-                raise RuntimeError(f"telegram api error: {body.get('description')}")
+                last_err = f"telegram api error: {body.get('description')}"
+                time.sleep(2 * attempt)
+                continue
             return body["result"]
-        raise RuntimeError("telegram 429 retry exhausted")
+        raise RuntimeError(f"telegram call failed: {last_err}")
 
     def publish_pending(self, product_id: int) -> tuple[bool, str | None]:
         if not self.enabled:
@@ -67,26 +79,13 @@ class TelegramPublisher:
         try:
             message_id = None
             if photos:
-                media = [
-                    {"type": "photo", "media": str(p)}
-                    for p in photos[:10]
-                ]
-                # caption goes on the first photo
-                media[0]["caption"] = post["text"]
-                media[0]["parse_mode"] = "HTML"
-                result = self._post(
-                    "sendMediaGroup",
-                    chat_id=self.config.telegram_chat_id,
-                    message_thread_id=thread_id,
-                    media=__import__("json").dumps(media),
-                )
-                message_id = result[0]["message_id"]
+                message_id = self._send_photo_group(photos, post["text"], thread_id)
             elif video:
                 result = self._post(
                     "sendVideo",
+                    files={"video": (video.name, video.read_bytes())},
                     chat_id=self.config.telegram_chat_id,
                     message_thread_id=thread_id,
-                    video=str(video),
                     caption=post["text"],
                     parse_mode="HTML",
                 )
@@ -104,9 +103,9 @@ class TelegramPublisher:
             if photos and video:
                 self._post(
                     "sendVideo",
+                    files={"video": (video.name, video.read_bytes())},
                     chat_id=self.config.telegram_chat_id,
                     message_thread_id=thread_id,
-                    video=str(video),
                 )
 
             self.db.execute(
@@ -128,6 +127,36 @@ class TelegramPublisher:
         self._mark_published(product_id)
         self._delete_local(product_id)
         return True, None
+
+    def _send_photo_group(self, photos: list[Path], caption: str, thread_id: int) -> int:
+        """Send photos as a media group (Bot API local-file multipart upload).
+        sendMediaGroup requires >= 2 media; a single photo uses sendPhoto."""
+        if len(photos) == 1:
+            result = self._post(
+                "sendPhoto",
+                chat_id=self.config.telegram_chat_id,
+                message_thread_id=thread_id,
+                photo=("photo.webp", photos[0].read_bytes()),
+                caption=caption,
+                parse_mode="HTML",
+            )
+            return result["message_id"]
+
+        media, files = [], {}
+        for i, path in enumerate(photos[:10], start=1):
+            attach = f"photo{i}"
+            media.append({"type": "photo", "media": f"attach://{attach}"})
+            files[attach] = (path.name, path.read_bytes())
+        media[0]["caption"] = caption
+        media[0]["parse_mode"] = "HTML"
+        result = self._post(
+            "sendMediaGroup",
+            files=files,
+            chat_id=self.config.telegram_chat_id,
+            message_thread_id=thread_id,
+            media=__import__("json").dumps(media),
+        )
+        return result[0]["message_id"]
 
     def _photo_paths(self, product_id: int) -> list[Path]:
         rows = self.db.query(
