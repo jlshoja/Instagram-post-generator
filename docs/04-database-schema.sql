@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS media_files (
     height           INTEGER,
     telegram_file_id TEXT,
     status           TEXT    NOT NULL DEFAULT 'pending', -- pending|downloaded|optimized|uploaded|deleted
+    sku_suffix       TEXT,                         -- a,b,c... for filename
     created_at       TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_media_product ON media_files(product_id);

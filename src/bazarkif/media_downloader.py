@@ -26,6 +26,12 @@ class MediaDownloader:
         self.http = http
 
     def download_product(self, product_id: int) -> tuple[bool, str | None]:
+        # get product SKU (code)
+        prod = self.db.query(
+            "SELECT code FROM products WHERE id=?", (product_id,)
+        )
+        sku = prod[0]["code"] if prod else str(product_id)
+
         rows = self.db.query(
             "SELECT * FROM media_files WHERE product_id=? AND status IN ('pending','downloaded')",
             (product_id,),
@@ -38,13 +44,37 @@ class MediaDownloader:
                     (MediaStatus.DELETED.value, r["id"]),
                 )
         rows = [r for r in rows if MEDIA_HOST in r["source_url"] or r["status"] == "downloaded"]
+
+        # assign SKU-based letter suffixes per kind
+        # featured -> a, gallery -> b,c,d..., video -> a,b,c...
+        counters = {"featured": 0, "gallery": 0, "video": 0}
+        for row in rows:
+            kind = row["kind"]
+            idx = counters.get(kind, 0)
+            counters[kind] = idx + 1
+            if kind == "featured":
+                suffix = "a"
+            elif kind == "gallery":
+                suffix = chr(ord("b") + idx)
+            else:  # video
+                suffix = chr(ord("a") + idx)
+            self.db.execute(
+                "UPDATE media_files SET sku_suffix=? WHERE id=?", (suffix, row["id"])
+            )
+
+        rows = self.db.query(
+            "SELECT * FROM media_files WHERE product_id=? AND status IN ('pending','downloaded')",
+            (product_id,),
+        )
+        rows = [r for r in rows if MEDIA_HOST in r["source_url"] or r["status"] == "downloaded"]
+
         image_rows = [r for r in rows if r["kind"] != MediaKind.VIDEO.value]
         image_ok = 0
         for row in image_rows:
             if row["status"] == "downloaded" and Path(row["local_path"]).exists():
                 image_ok += 1
                 continue
-            res = self._download_one(row)
+            res = self._download_one(row, sku)
             if res is True:
                 image_ok += 1
             elif res == "gone":
@@ -56,7 +86,7 @@ class MediaDownloader:
             if row["kind"] == MediaKind.VIDEO.value:
                 if row["status"] == "downloaded" and Path(row["local_path"]).exists():
                     continue
-                res = self._download_one(row)
+                res = self._download_one(row, sku)
                 if res == "gone":
                     pass
                 elif not res:
@@ -77,12 +107,9 @@ class MediaDownloader:
         )
         return True, None
 
-    def _download_one(self, row) -> bool | str:
+    def _download_one(self, row, sku: str) -> bool | str:
         url = row["source_url"]
-        # percent-encode explicitly so non-ASCII (Persian) filenames are sent
-        # in exactly the form the CDN expects regardless of proxy/urllib3 IRI handling
         request_url = quote(url, safe=":/?&=%")
-        # retry transient failures (network errors / 5xx) up to 3 attempts
         resp = None
         last_err = None
         for attempt in range(3):
@@ -99,8 +126,6 @@ class MediaDownloader:
             logger.warning("media fetch error", extra={"url": url, "error": str(last_err)})
             return False
         if resp.status_code in (404, 410):
-            # permanently gone (e.g. stale raw-content links on the site):
-            # mark dead so it is never retried on later scans
             self.db.execute(
                 "UPDATE media_files SET status=? WHERE id=?",
                 (MediaStatus.DELETED.value, row["id"]),
@@ -115,9 +140,11 @@ class MediaDownloader:
         ext = self._ext_from_content_type(resp.headers.get("content-type", "")) or Path(
             _filename_from_url(url)
         ).suffix
-        path = dest_dir / f"{row['id']}_{_filename_from_url(url)}"
-        if not path.suffix:
-            path = path.with_suffix(ext)
+        suffix = row["sku_suffix"] if "sku_suffix" in row.keys() else ""
+        if not suffix:
+            suffix = "a"
+        filename = f"{sku}{suffix}{ext}"
+        path = dest_dir / filename
         path.write_bytes(resp.content)
 
         self.db.execute(

@@ -87,14 +87,14 @@ def product_id(db) -> int:
 
 def seed_media(db, product_id):
     db.execute(
-        "INSERT INTO media_files (product_id, kind, source_url, status) VALUES (?,?,?,?)",
-        (product_id, "gallery", IMG_1, "pending"),
+        "INSERT INTO media_files (product_id, kind, source_url, status, sku_suffix) VALUES (?,?,?,?,?)",
+        (product_id, "gallery", IMG_1, "pending", None),
     )
     db.execute(
-        "INSERT INTO media_files (product_id, kind, source_url, status) VALUES (?,?,?,?)",
-        (product_id, "gallery", IMG_2, "pending"),
+        "INSERT INTO media_files (product_id, kind, source_url, status, sku_suffix) VALUES (?,?,?,?,?)",
+        (product_id, "gallery", IMG_2, "pending", None),
     )
     db.execute(
-        "INSERT INTO media_files (product_id, kind, source_url, status) VALUES (?,?,?,?)",
-        (product_id, "video", VIDEO, "pending"),
+        "INSERT INTO media_files (product_id, kind, source_url, status, sku_suffix) VALUES (?,?,?,?,?)",
+        (product_id, "video", VIDEO, "pending", None),
     )
