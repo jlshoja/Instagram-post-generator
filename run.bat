@@ -27,19 +27,11 @@ if /i "%MODE%"=="until" (
     if not defined STAGE_OK goto :usage
 )
 
-rem ---- optional pip mirror (last arg or any arg starting with http) ----
-set MIRROR=
-if not "%ARG2%"=="" (
-    if "%ARG2:~0,4%"=="http" set "MIRROR=%ARG2%"
-)
-if not defined MIRROR (
-    if not "%ARG3%"=="" (
-        if "%ARG3:~0,4%"=="http" set "MIRROR=%ARG3%"
-    )
-)
-if defined MIRROR echo [setup] pip mirror: %MIRROR%
+rem ---- optional pip mirror: 2nd or 3rd argument starting with http ----
 set "PIP_EXTRA="
-if defined MIRROR set "PIP_EXTRA=-i %MIRROR%"
+if /i not "%3"=="" if /i "%3:~0,4%"=="http" set "PIP_EXTRA=-i %3"
+if "%PIP_EXTRA%"=="" if /i not "%2"=="" if /i "%2:~0,4%"=="http" set "PIP_EXTRA=-i %2"
+if not "%PIP_EXTRA%"=="" echo [setup] pip install mirror: %PIP_EXTRA%
 
 rem ---- 1. python / venv -------------------------------------------------
 if not exist venv\Scripts\python.exe (
@@ -188,13 +180,14 @@ echo                             detail | media | optimize | post
 echo   until publish            partial run through publish (sends cards)
 echo   daemon                   run the daily scheduler daemon
 echo.
-echo Mirror: append a PyPI mirror URL when pip cannot reach pythonhosted.org,
-echo         e.g. https://mirror-pypi.runflare.com/simple  (Iran users)
+echo Mirror: if pip cannot reach pythonhosted.org, either set PIP_INDEX_URL:
+echo         set PIP_INDEX_URL=https://mirror-pypi.runflare.com/simple
+echo         or append the mirror URL as a 2nd/3rd argument, e.g.
+echo         run.bat fresh https://mirror-pypi.runflare.com/simple
 echo.
 echo Examples:
 echo   run.bat                  full update + publish
 echo   run.bat fresh            first-time full download on a new machine
-echo   run.bat fresh https://mirror-pypi.runflare.com/simple   with mirror
 echo   run.bat retry            retry every failed item
 echo   run.bat sample 5         quick test with 5 products
 echo   run.bat until optimize   stop after WebP optimization

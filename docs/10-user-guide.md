@@ -177,14 +177,17 @@ Key settings — see `config.example.env` for the full list:
 ## Troubleshooting
 
 **pip cannot install dependencies (timeouts to pythonhosted.org).**
-Your network can't reach PyPI. Re-run with an Iranian mirror appended:
+Your network can't reach PyPI. The bundled `first-run.bat` already sets the
+Iranian mirror via `PIP_INDEX_URL`. For any other mode, set it yourself first:
 
 ```bat
-run.bat fresh https://mirror-pypi.runflare.com/simple
+set PIP_INDEX_URL=https://mirror-pypi.runflare.com/simple
+run.bat fresh
 ```
 
 Alternatives: `https://package-mirror.liara.ir/repository/pypi/simple`,
-`https://mirror.abrha.net/repository/pypi/simple`. `run.bat` retries the install
+`https://mirror.abrha.net/repository/pypi/simple`. You can also pass the URL as
+a 2nd/3rd argument (`run.bat fresh <mirror-url>`). `run.bat` retries the install
 automatically if dependencies are missing, so a previously failed install picks
 up right where it stopped.
 
