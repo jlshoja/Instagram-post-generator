@@ -1,0 +1,22 @@
+services:
+  bazarkif:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DB_PATH=/app/data/bazarkif.db
+      - MEDIA_ROOT=/app/.media
+      - LOG_DIR=/app/logs
+      - ENABLE_SCHEDULER=1
+    volumes:
+      # durable: product history survives restarts
+      - bazarkif_data:/app/data
+      # ephemeral: media is temp-only by design
+      - bazarkif_media:/app/.media
+      - bazarkif_logs:/app/logs
+
+volumes:
+  bazarkif_data:
+  bazarkif_media:
+  bazarkif_logs:
