@@ -176,6 +176,18 @@ Key settings — see `config.example.env` for the full list:
 
 ## Troubleshooting
 
+**pip cannot install dependencies (timeouts to pythonhosted.org).**
+Your network can't reach PyPI. Re-run with an Iranian mirror appended:
+
+```bat
+run.bat fresh https://mirror-pypi.runflare.com/simple
+```
+
+Alternatives: `https://package-mirror.liara.ir/repository/pypi/simple`,
+`https://mirror.abrha.net/repository/pypi/simple`. `run.bat` retries the install
+automatically if dependencies are missing, so a previously failed install picks
+up right where it stopped.
+
 **Cards are not published.**
 Open `.env` and confirm `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are filled,
 and `TELEGRAM_THREAD_PENDING` is the correct topic thread id. `run.bat` validates

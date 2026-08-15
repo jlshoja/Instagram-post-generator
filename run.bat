@@ -9,6 +9,7 @@ echo ============================================================
 rem ---- mode selection -------------------------------------------------
 set MODE=%1
 set ARG2=%2
+set ARG3=%3
 if "%MODE%"=="" set MODE=update
 if "%MODE%"=="-h"    goto :usage
 if "%MODE%"=="/?"    goto :usage
@@ -26,6 +27,20 @@ if /i "%MODE%"=="until" (
     if not defined STAGE_OK goto :usage
 )
 
+rem ---- optional pip mirror (last arg or any arg starting with http) ----
+set MIRROR=
+if not "%ARG2%"=="" (
+    if "%ARG2:~0,4%"=="http" set "MIRROR=%ARG2%"
+)
+if not defined MIRROR (
+    if not "%ARG3%"=="" (
+        if "%ARG3:~0,4%"=="http" set "MIRROR=%ARG3%"
+    )
+)
+if defined MIRROR echo [setup] pip mirror: %MIRROR%
+set "PIP_EXTRA="
+if defined MIRROR set "PIP_EXTRA=-i %MIRROR%"
+
 rem ---- 1. python / venv -------------------------------------------------
 if not exist venv\Scripts\python.exe (
     echo [setup] creating virtual environment...
@@ -35,15 +50,24 @@ if not exist venv\Scripts\python.exe (
         pause
         exit /b 1
     )
+) else (
+    echo [setup] venv found.
+)
+
+rem install deps if missing (also retries after a failed first install)
+venv\Scripts\python -c "import requests,bs4,PIL,apscheduler" >nul 2>&1
+if errorlevel 1 (
     echo [setup] installing dependencies...
-    venv\Scripts\python -m pip install -r requirements.txt -q
+    venv\Scripts\python -m pip install %PIP_EXTRA% -r requirements.txt
     if errorlevel 1 (
         echo [ERROR] pip install failed.
+        echo          If PyPI is blocked, retry with a mirror, e.g.:
+        echo          run.bat fresh https://mirror-pypi.runflare.com/simple
         pause
         exit /b 1
     )
 ) else (
-    echo [setup] venv found.
+    echo [setup] dependencies present.
 )
 
 rem ---- 2. .env --------------------------------------------------------
@@ -150,7 +174,7 @@ exit /b %EXIT%
 
 :usage
 echo.
-echo Usage:  run.bat [mode] [value]
+echo Usage:  run.bat [mode] [value] [pip-mirror-url]
 echo.
 echo   update                  full update: scan + build + publish all products
 echo   fresh                   reset database + media first, then full update
@@ -164,9 +188,13 @@ echo                             detail | media | optimize | post
 echo   until publish            partial run through publish (sends cards)
 echo   daemon                   run the daily scheduler daemon
 echo.
+echo Mirror: append a PyPI mirror URL when pip cannot reach pythonhosted.org,
+echo         e.g. https://mirror-pypi.runflare.com/simple  (Iran users)
+echo.
 echo Examples:
 echo   run.bat                  full update + publish
 echo   run.bat fresh            first-time full download on a new machine
+echo   run.bat fresh https://mirror-pypi.runflare.com/simple   with mirror
 echo   run.bat retry            retry every failed item
 echo   run.bat sample 5         quick test with 5 products
 echo   run.bat until optimize   stop after WebP optimization
