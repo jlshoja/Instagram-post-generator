@@ -38,6 +38,28 @@ by `run.bat`.
 
 ## First-time run (Windows)
 
+> **Terminal tip:** this guide uses PowerShell (the default terminal). In
+> PowerShell you must prefix scripts with `.\` — so `.\run.bat` not `run.bat`.
+> You can also just **double-click** `run.bat` / `first-run.bat` to skip typing.
+
+### Quick start (copy these lines one at a time)
+
+```powershell
+git pull
+git log --oneline -1
+$env:PIP_INDEX_URL="https://mirror-pypi.runflare.com/simple"
+.\run.bat fresh
+```
+
+1. `git pull` — get the latest scripts (if `git log --oneline -1` doesn't print
+   a recent `e6d274a` or newer commit, the pull didn't run — re-run it).
+2. The `$env:PIP_INDEX_URL=...` line points pip at an **Iranian mirror** because
+   `pythonhosted.org` is blocked/slow on this network. It only applies to the
+   current PowerShell window.
+3. `.\run.bat fresh` — first-time full download + publish. It will print
+   `[setup] venv found.` or install dependencies, then download everything.
+4. Wait for the final **`[done]`** line, then check the topic in Telegram.
+
 ### 1. Get the project
 
 The repository is **public**, so use HTTPS — no SSH key is needed:
@@ -106,7 +128,8 @@ code, key specs, the priced amount, and order instructions. Prices should end in
 
 ## Day-to-day usage
 
-Open a terminal in the project folder and run:
+Open a terminal in the project folder. In PowerShell, prefix commands with
+`.\` (the table shows plain `run.bat` for brevity — type `.\run.bat`):
 
 | Command | What it does |
 |---|---|
@@ -177,17 +200,17 @@ Key settings — see `config.example.env` for the full list:
 ## Troubleshooting
 
 **pip cannot install dependencies (timeouts to pythonhosted.org).**
-Your network can't reach PyPI. The bundled `first-run.bat` already sets the
-Iranian mirror via `PIP_INDEX_URL`. For any other mode, set it yourself first:
+Your network can't reach PyPI. Point pip at an Iranian mirror **in the same
+PowerShell window** before running:
 
-```bat
-set PIP_INDEX_URL=https://mirror-pypi.runflare.com/simple
-run.bat fresh
+```powershell
+$env:PIP_INDEX_URL="https://mirror-pypi.runflare.com/simple"
+.\run.bat fresh
 ```
 
 Alternatives: `https://package-mirror.liara.ir/repository/pypi/simple`,
-`https://mirror.abrha.net/repository/pypi/simple`. You can also pass the URL as
-a 2nd/3rd argument (`run.bat fresh <mirror-url>`). `run.bat` retries the install
+`https://mirror.abrha.net/repository/pypi/simple`. The bundled `first-run.bat`
+sets the mirror automatically (double-click it). `run.bat` retries the install
 automatically if dependencies are missing, so a previously failed install picks
 up right where it stopped.
 
