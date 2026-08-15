@@ -58,17 +58,17 @@ python -m bazarkif.cli daemon
    ```
    Or create `.env` by hand from `config.example.env` — the app **auto-loads
    `.env`** (no `source` needed on Windows).
-3. First full download. If your network blocks PyPI, the bundled `first-run.bat`
-   sets the Iranian mirror automatically — **double-click `first-run.bat`**, or
-   from PowerShell:
+3. First full download. `run.bat` creates the venv, installs deps (retrying via
+   the Iranian PyPI mirror automatically if the normal source is blocked), and
+   validates Telegram on first use. **Double-click `run.bat`** and pick `fresh`
+   from the menu, or from PowerShell:
    ```powershell
-   $env:PIP_INDEX_URL="https://mirror-pypi.runflare.com/simple"
    .\run.bat fresh
    ```
-   `run.bat` creates the venv, installs deps, and validates Telegram on first
-   use. `fresh` resets only the DB/media; the tracked pricing file is preserved.
-4. Day-to-day (PowerShell, note the `.\` prefix):
-   - `.\run.bat` — subsequent full update + publish.
+   `fresh` resets only the DB/media; the tracked pricing file is preserved.
+4. Day-to-day: **double-click `run.bat`** and pick a mode from the menu, or use
+   arguments from PowerShell (note the `.\` prefix):
+   - `.\run.bat` — interactive menu (update / fresh / dry / resume / retry / publish / sample / until publish / daemon).
    - `.\run.bat retry` — force-retry all failed jobs; `.\run.bat resume` — retry only due ones.
    - `.\run.bat until <stage>` — partial/resumable runs (detail | media | optimize | post).
    - `.\run.bat dry` — build posts without sending; `.\run.bat publish` — send drafts only.

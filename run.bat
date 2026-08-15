@@ -6,15 +6,16 @@ echo ============================================================
 echo   LUXBAZ Instagram Post Generator
 echo ============================================================
 
-rem ---- mode selection -------------------------------------------------
+rem ---- mode selection ------------------------------------------------
 set MODE=%1
 set ARG2=%2
-if "%MODE%"=="" set MODE=update
+if not defined MODE call :menu
+if /i "%MODE%"=="exit" exit /b 0
 if "%MODE%"=="-h"    goto :usage
 if "%MODE%"=="/?"    goto :usage
 if "%MODE%"=="help"  goto :usage
 
-for %%m in (update fresh dry resume retry publish daemon sample until) do (
+for %%m in (update fresh dry resume retry publish sample until daemon) do (
     if /i "%MODE%"=="%%m" set VALID=1
 )
 if not defined VALID goto :usage
@@ -26,9 +27,7 @@ if /i "%MODE%"=="until" (
     if not defined STAGE_OK goto :usage
 )
 
-rem mirror: set PIP_INDEX_URL in the shell before running (pip reads it natively)
-
-rem ---- 1. python / venv -------------------------------------------------
+rem ---- 1. python / venv ------------------------------------------------
 if not exist venv\Scripts\python.exe (
     echo [setup] creating virtual environment...
     py -3.12 -m venv venv 2>nul || python -m venv venv
@@ -41,24 +40,27 @@ if not exist venv\Scripts\python.exe (
     echo [setup] venv found.
 )
 
-rem install deps if missing (also retries after a failed first install)
+rem install deps if missing (normal, then auto-retry via Iranian mirror)
 venv\Scripts\python check_setup.py deps >nul 2>&1
 if errorlevel 1 (
     echo [setup] installing dependencies...
     venv\Scripts\python -m pip install -r requirements.txt
     if errorlevel 1 (
-        echo [ERROR] pip install failed.
-        echo          If PyPI is blocked, set PIP_INDEX_URL first, e.g.:
-        echo          $env:PIP_INDEX_URL="https://mirror-pypi.runflare.com/simple"
-        echo          then re-run, or double-click first-run.bat.
-        pause
-        exit /b 1
+        echo [setup] normal PyPI unreachable - retrying via Iranian mirror...
+        set PIP_INDEX_URL=https://mirror-pypi.runflare.com/simple
+        venv\Scripts\python -m pip install -r requirements.txt
+        if errorlevel 1 (
+            echo [ERROR] pip install failed on both sources.
+            echo          Check your connection and re-run.
+            pause
+            exit /b 1
+        )
     )
 ) else (
     echo [setup] dependencies present.
 )
 
-rem ---- 2. .env --------------------------------------------------------
+rem ---- 2. .env ----------------------------------------------------------
 if exist ".env" goto :env_ok
 echo [setup] creating .env from config.example.env
 copy config.example.env ".env" >nul
@@ -75,7 +77,7 @@ exit /b 1
 
 set PYTHONPATH=src
 
-rem ---- 3. telegram config check ---------------------------------------
+rem ---- 3. telegram config check ----------------------------------------
 venv\Scripts\python check_setup.py telegram >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] Telegram is not configured. Edit .env - TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID.
@@ -83,7 +85,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-rem ---- 4. modes ---------------------------------------------------------
+rem ---- 4. modes ----------------------------------------------------------
 if /i "%MODE%"=="fresh" (
     echo [setup] fresh mode: resetting database and media...
     if exist data\bazarkif.db     del /q data\bazarkif.db
@@ -156,7 +158,7 @@ if "%EXIT%"=="0" (
     echo [done] finished. See logs\app.log
 ) else (
     echo [FAILED] exit code %EXIT%. See logs\app.log for details.
-    echo          Re-run with:  run.bat retry   to retry failed items.
+    echo          Re-run and pick "retry" to retry failed items.
 )
 pause
 exit /b %EXIT%
@@ -165,6 +167,7 @@ exit /b %EXIT%
 echo.
 echo Usage:  run.bat [mode] [value]
 echo.
+echo   (no args)              show the interactive menu
 echo   update                  full update: scan + build + publish all products
 echo   fresh                   reset database + media first, then full update
 echo   dry                     scan + build posts, do NOT send to Telegram
@@ -177,17 +180,66 @@ echo                             detail | media | optimize | post
 echo   until publish            partial run through publish (sends cards)
 echo   daemon                   run the daily scheduler daemon
 echo.
-echo Mirror: if pip cannot reach pythonhosted.org, set PIP_INDEX_URL in the
-echo         shell first (first-run.bat does this automatically):
-echo         PowerShell:  $env:PIP_INDEX_URL="https://mirror-pypi.runflare.com/simple"
-echo         Command:     set PIP_INDEX_URL=https://mirror-pypi.runflare.com/simple
-echo.
 echo Examples:
-echo   run.bat                  full update + publish
+echo   run.bat                  interactive menu
 echo   run.bat fresh            first-time full download on a new machine
 echo   run.bat retry            retry every failed item
 echo   run.bat sample 5         quick test with 5 products
 echo   run.bat until optimize   stop after WebP optimization
 echo.
 pause
-exit /b 0
+exit /b 0
+
+:menu
+echo.
+echo  Select a mode:
+echo   1) update          6) publish
+echo   2) fresh           7) sample (3 products)
+echo   3) dry             8) until publish
+echo   4) resume          9) daemon
+echo   5) retry           0) exit
+echo.
+choice /c 0123456789 /n /m "  Pick a number (0-9): "
+if errorlevel 10 goto :m_daemon
+if errorlevel 9  goto :m_until
+if errorlevel 8  goto :m_sample
+if errorlevel 7  goto :m_publish
+if errorlevel 6  goto :m_retry
+if errorlevel 5  goto :m_resume
+if errorlevel 4  goto :m_dry
+if errorlevel 3  goto :m_fresh
+if errorlevel 2  goto :m_update
+if errorlevel 1  goto :m_exit
+goto :menu
+
+:m_update
+set MODE=update
+goto :eof
+:m_fresh
+set MODE=fresh
+goto :eof
+:m_dry
+set MODE=dry
+goto :eof
+:m_resume
+set MODE=resume
+goto :eof
+:m_retry
+set MODE=retry
+goto :eof
+:m_publish
+set MODE=publish
+goto :eof
+:m_sample
+set MODE=sample
+goto :eof
+:m_until
+set MODE=until
+set ARG2=publish
+goto :eof
+:m_daemon
+set MODE=daemon
+goto :eof
+:m_exit
+set MODE=exit
+goto :eof

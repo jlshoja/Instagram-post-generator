@@ -40,22 +40,21 @@ by `run.bat`.
 
 > **Terminal tip:** this guide uses PowerShell (the default terminal). In
 > PowerShell you must prefix scripts with `.\` — so `.\run.bat` not `run.bat`.
-> You can also just **double-click** `run.bat` / `first-run.bat` to skip typing.
+> You can also just **double-click** `run.bat` and pick a mode from the menu.
 
 ### Quick start (copy these lines one at a time)
 
 ```powershell
 git pull
 git log --oneline -1
-$env:PIP_INDEX_URL="https://mirror-pypi.runflare.com/simple"
 .\run.bat fresh
 ```
 
 1. `git pull` — get the latest scripts (if `git log --oneline -1` doesn't print
    a recent commit hash, the pull didn't run — re-run it).
-2. The `$env:PIP_INDEX_URL=...` line points pip at an **Iranian mirror** because
-   `pythonhosted.org` is blocked/slow on this network. It only applies to the
-   current PowerShell window.
+2. `run.bat` installs dependencies itself and, if `pythonhosted.org` is
+   blocked/slow on this network, **automatically retries via an Iranian mirror** —
+   no manual `PIP_INDEX_URL` needed.
 3. `.\run.bat fresh` — first-time full download + publish. It will print
    `[setup] venv found.` or install dependencies, then download everything.
 4. Wait for the final **`[done]`** line, then check the topic in Telegram.
@@ -129,26 +128,27 @@ code, key specs, the priced amount, and order instructions. Prices should end in
 ## Day-to-day usage
 
 Open a terminal in the project folder. In PowerShell, prefix commands with
-`.\` (the table shows plain `run.bat` for brevity — type `.\run.bat`):
+`.\` (the table shows plain `run.bat` for brevity — type `.\run.bat`).
+Alternatively **double-click `run.bat`** and pick a mode from the menu:
 
-| Command | What it does |
+| Command / menu | What it does |
 |---|---|
-| `run.bat` | Full update: scan + build + publish everything new/changed |
-| `run.bat fresh` | Reset DB + media, then full update (use for a clean re-download) |
-| `run.bat dry` | Scan + build cards only — **does not** send to Telegram |
-| `run.bat retry` | **Force-retry all failed items now**, then update |
-| `run.bat resume` | Requeue pending / due failed jobs, then update |
-| `run.bat publish` | Send already-drafted cards to Telegram (no scan) |
-| `run.bat sample [N]` | Test mode: process only `N` products (default 3) |
-| `run.bat until detail` | Partial run — stop after a stage |
-| `run.bat until media` | `detail \| media \| optimize \| post` |
-| `run.bat until publish` | Partial run **through** publish (sends cards) |
-| `run.bat daemon` | Run the daily scheduler (once/day, `SCAN_INTERVAL_MINUTES`) |
+| `run.bat` | **Interactive menu** — pick a mode below (double-click uses this) |
+| `run.bat update` (menu 1) | Full update: scan + build + publish everything new/changed |
+| `run.bat fresh` (menu 2) | Reset DB + media, then full update (clean re-download) |
+| `run.bat dry` (menu 3) | Scan + build cards only — **does not** send to Telegram |
+| `run.bat resume` (menu 4) | Requeue pending / due failed jobs, then update |
+| `run.bat retry` (menu 5) | **Force-retry all failed items now**, then update |
+| `run.bat publish` (menu 6) | Send already-drafted cards to Telegram (no scan) |
+| `run.bat sample [N]` (menu 7) | Test mode: process only `N` products (default 3) |
+| `run.bat until <stage>` | Partial run — stop after a stage (`detail \| media \| optimize \| post`) |
+| `run.bat until publish` (menu 8) | Partial run **through** publish (sends cards) |
+| `run.bat daemon` (menu 9) | Run the daily scheduler (once/day, `SCAN_INTERVAL_MINUTES`) |
 
 Examples:
 
 ```bat
-run.bat          rem normal daily update + publish
+run.bat          rem show menu / normal daily update
 run.bat retry    rem retry everything that failed
 run.bat sample 5 rem quick sanity test with 5 products
 ```
@@ -200,8 +200,9 @@ Key settings — see `config.example.env` for the full list:
 ## Troubleshooting
 
 **pip cannot install dependencies (timeouts to pythonhosted.org).**
-Your network can't reach PyPI. Point pip at an Iranian mirror **in the same
-PowerShell window** before running:
+`run.bat` installs dependencies itself and retries automatically via the Iranian
+mirror (`https://mirror-pypi.runflare.com/simple`). If even that fails, set the
+mirror manually and re-run:
 
 ```powershell
 $env:PIP_INDEX_URL="https://mirror-pypi.runflare.com/simple"
@@ -209,10 +210,8 @@ $env:PIP_INDEX_URL="https://mirror-pypi.runflare.com/simple"
 ```
 
 Alternatives: `https://package-mirror.liara.ir/repository/pypi/simple`,
-`https://mirror.abrha.net/repository/pypi/simple`. The bundled `first-run.bat`
-sets the mirror automatically (double-click it). `run.bat` retries the install
-automatically if dependencies are missing, so a previously failed install picks
-up right where it stopped.
+`https://mirror.abrha.net/repository/pypi/simple`. A previously failed install
+picks up right where it stopped.
 
 **Cards are not published.**
 Open `.env` and confirm `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are filled,
