@@ -9,7 +9,6 @@ from .detail import DetailExtractor
 from .discovery import Discovery
 from .http_client import HttpClient
 from .media_downloader import MediaDownloader
-from .media_optimizer import MediaOptimizer
 from .models import ProductState
 from .post_generator import PostGenerator
 from .retry_queue import RetryQueue
@@ -17,7 +16,7 @@ from .telegram_publisher import TelegramPublisher
 
 logger = logging.getLogger("bazarkif.scanner")
 
-STAGE_ORDER = ["detail", "media", "optimize", "post", "publish"]
+STAGE_ORDER = ["detail", "media", "post", "publish"]
 
 
 def _stage_index(name: str) -> int:
@@ -36,7 +35,6 @@ class Scanner:
         self.discovery = Discovery(config, self.db, self.http)
         self.detail = DetailExtractor(config, self.db, self.http)
         self.downloader = MediaDownloader(config, self.db, self.http)
-        self.optimizer = MediaOptimizer(config, self.db)
         self.generator = PostGenerator(config, self.db)
         self.publisher = TelegramPublisher(config, self.db)
         self.notifier = ChangeNotifier(config, self.db, self.publisher)
@@ -59,12 +57,6 @@ class Scanner:
             self.retry.record_failure(product_id, "media_download", err or "media download failed")
         return ok
 
-    def _run_optimize(self, product_id: int) -> bool:
-        ok, err = self.optimizer.optimize_product(product_id)
-        if not ok:
-            self.retry.record_failure(product_id, "media_optimize", err or "optimize failed")
-        return ok
-
     def _run_post(self, product_id: int) -> bool:
         ok, err = self.generator.generate(product_id)
         if not ok:
@@ -82,8 +74,6 @@ class Scanner:
             return self._run_detail(product_id)
         if stage == "media":
             return self._run_media(product_id)
-        if stage == "optimize":
-            return self._run_optimize(product_id)
         if stage == "post":
             return self._run_post(product_id)
         if stage == "publish":
@@ -93,7 +83,7 @@ class Scanner:
     # ---- orchestrator ---------------------------------------------------
     def run_scan(self, publish: bool = True, until: str | None = None) -> dict:
         """until: run only stages up to this stage name
-        (detail|media|optimize|post|publish). None runs everything."""
+        (detail|media|post|publish). None runs everything."""
         scan_id = self.db.execute(
             "INSERT INTO scans (started_at, status) VALUES (datetime('now'),'RUNNING')"
         ).lastrowid
@@ -107,8 +97,7 @@ class Scanner:
         stages = [
             ("detail", ProductState.DISCOVERED, self._run_detail, "detail"),
             ("media", ProductState.DETAILS_EXTRACTED, self._run_media, "media"),
-            ("optimize", ProductState.MEDIA_DOWNLOADED, self._run_optimize, "optimize"),
-            ("post", ProductState.MEDIA_OPTIMIZED, self._run_post, "post"),
+            ("post", ProductState.MEDIA_DOWNLOADED, self._run_post, "post"),
             ("publish", ProductState.POST_GENERATED, self._run_publish, "publish"),
         ]
         for name, state, worker, stage in stages:
@@ -121,7 +110,7 @@ class Scanner:
         # requeue any due failed jobs
         self.retry.requeue_due(self._run_stage)
 
-        stats["processed"] = self.db.scalar("SELECT COUNT(*) FROM products WHERE state IN ('POST_GENERATED','PUBLISHED','MEDIA_OPTIMIZED')")
+        stats["processed"] = self.db.scalar("SELECT COUNT(*) FROM products WHERE state IN ('POST_GENERATED','PUBLISHED')")
         stats["published"] = self.db.scalar("SELECT COUNT(*) FROM products WHERE state='PUBLISHED'")
         stats["failed"] = self.db.scalar("SELECT COUNT(*) FROM failed_jobs WHERE resolved=0")
 
@@ -182,7 +171,7 @@ class Scanner:
                 "INSERT INTO change_log (product_id, change_type) VALUES (?,?)",
                 (row["id"], "availability_changed"),
             )
-            logger.info("product unavailable", extra={"product_id": row["id"], "name": row["name"]})
+            logger.info("product unavailable", extra={"product_id": row["id"], "product_name": row["name"]})
 
     def resume(self) -> None:
         """Re-feeds products by current state into their queues on startup."""

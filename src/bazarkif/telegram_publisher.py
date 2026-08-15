@@ -76,6 +76,15 @@ class TelegramPublisher:
         photos = self._photo_paths(product_id)
         video = self._video_path(product_id)
 
+        # Validate all media belongs to this product
+        for p in photos:
+            if not str(p).startswith(str(self.config.media_root / "download" / str(product_id))):
+                logger.error("Photo path mismatch", extra={"product_id": product_id, "path": str(p)})
+                return False, "media path mismatch"
+        if video and not str(video).startswith(str(self.config.media_root / "download" / str(product_id))):
+            logger.error("Video path mismatch", extra={"product_id": product_id, "path": str(video)})
+            return False, "video path mismatch"
+
         try:
             message_id = None
             if photos:
@@ -113,7 +122,7 @@ class TelegramPublisher:
                 (PostStatus.SENT.value, message_id, thread_id, post["id"]),
             )
             self.db.execute(
-                "UPDATE media_files SET telegram_file_id=?, status='uploaded' WHERE product_id=? AND status='optimized'",
+                "UPDATE media_files SET telegram_file_id=?, status='uploaded' WHERE product_id=? AND status='downloaded'",
                 (str(message_id), product_id),
             )
         except Exception as e:
@@ -160,12 +169,18 @@ class TelegramPublisher:
 
     def _photo_paths(self, product_id: int) -> list[Path]:
         rows = self.db.query(
-            "SELECT optimized_path FROM media_files WHERE product_id=? "
-            "AND kind IN ('featured','gallery','raw') AND status='optimized' AND optimized_path IS NOT NULL "
+            "SELECT local_path FROM media_files WHERE product_id=? "
+            "AND kind IN ('featured','gallery','raw') AND status='downloaded' AND local_path IS NOT NULL "
             "ORDER BY CASE kind WHEN 'featured' THEN 0 WHEN 'gallery' THEN 1 ELSE 2 END, id",
             (product_id,),
         )
-        paths = [Path(r["optimized_path"]) for r in rows if Path(r["optimized_path"]).exists()]
+        paths = []
+        for r in rows:
+            p = Path(r["local_path"])
+            if p.exists():
+                # Verify the file belongs to this product (defensive check)
+                if str(p).startswith(str(self.config.media_root / "download" / str(product_id))):
+                    paths.append(p)
         # de-dup by source file (raw content may duplicate gallery)
         seen, uniq = set(), []
         for p in paths:
@@ -177,14 +192,16 @@ class TelegramPublisher:
 
     def _video_path(self, product_id: int) -> Path | None:
         row = self.db.query(
-            "SELECT optimized_path FROM media_files WHERE product_id=? AND kind='video' "
-            "AND status='optimized' AND optimized_path IS NOT NULL LIMIT 1",
+            "SELECT local_path FROM media_files WHERE product_id=? AND kind='video' "
+            "AND status='downloaded' AND local_path IS NOT NULL LIMIT 1",
             (product_id,),
         )
         if not row:
             return None
-        p = Path(row[0]["optimized_path"])
-        return p if p.exists() else None
+        p = Path(row[0]["local_path"])
+        if p.exists() and str(p).startswith(str(self.config.media_root / "download" / str(product_id))):
+            return p
+        return None
 
     def _mark_published(self, product_id: int) -> None:
         self.db.execute(
@@ -198,17 +215,16 @@ class TelegramPublisher:
 
     def _delete_local(self, product_id: int) -> None:
         rows = self.db.query(
-            "SELECT local_path, optimized_path FROM media_files WHERE product_id=?", (product_id,)
+            "SELECT local_path FROM media_files WHERE product_id=?", (product_id,)
         )
         for r in rows:
-            for key in ("local_path", "optimized_path"):
-                val = r[key]
-                if val:
-                    try:
-                        Path(val).unlink(missing_ok=True)
-                    except OSError:
-                        pass
+            val = r["local_path"]
+            if val:
+                try:
+                    Path(val).unlink(missing_ok=True)
+                except OSError:
+                    pass
         self.db.execute(
-            "UPDATE media_files SET status='deleted' WHERE product_id=? AND status IN ('uploaded','optimized')",
+            "UPDATE media_files SET status='deleted' WHERE product_id=? AND status IN ('uploaded','downloaded')",
             (product_id,),
         )

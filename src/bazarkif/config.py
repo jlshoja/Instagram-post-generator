@@ -76,10 +76,7 @@ class Config:
     retry_jitter: float = 0.25
     retry_on_http: tuple = (429, 500, 502, 503, 504)
 
-    # media optimization
-    webp_target_bytes: int = 125 * 1024
-    webp_quality_start: int = 82
-    webp_quality_floor: int = 55
+    # media
     image_max_dimension: int = 1080
     orphan_retention_hours: float = 24.0
 
@@ -122,9 +119,6 @@ class Config:
         c.retry_base_delay = float(os.environ.get("RETRY_BASE_DELAY", c.retry_base_delay) or c.retry_base_delay)
         c.retry_max_delay = float(os.environ.get("RETRY_MAX_DELAY", c.retry_max_delay) or c.retry_max_delay)
         c.retry_factor = float(os.environ.get("RETRY_FACTOR", c.retry_factor) or c.retry_factor)
-
-        c.webp_target_bytes = _env_int("WEBP_TARGET_BYTES", c.webp_target_bytes)
-        c.image_max_dimension = _env_int("IMAGE_MAX_DIMENSION", c.image_max_dimension)
 
         c.pricing_file = Path(os.environ.get("PRICING_FILE", str(c.pricing_file)))
         c.pricing_enabled = _env_bool("PRICING_ENABLED", c.pricing_enabled)

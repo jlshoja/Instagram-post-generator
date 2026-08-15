@@ -16,7 +16,7 @@ class Cleanup:
         """Delete temp files older than the retention window."""
         cutoff = time.time() - self.config.orphan_retention_hours * 3600
         removed = 0
-        for folder in (self.config.media_root / "download", self.config.media_root / "optimize"):
+        for folder in (self.config.media_root / "download",):
             if not folder.exists():
                 continue
             for path in folder.rglob("*"):

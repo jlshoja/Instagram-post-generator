@@ -5,7 +5,6 @@ class ProductState(str, Enum):
     DISCOVERED = "DISCOVERED"
     DETAILS_EXTRACTED = "DETAILS_EXTRACTED"
     MEDIA_DOWNLOADED = "MEDIA_DOWNLOADED"
-    MEDIA_OPTIMIZED = "MEDIA_OPTIMIZED"
     POST_GENERATED = "POST_GENERATED"
     PUBLISHED = "PUBLISHED"
     FAILED = "FAILED"
@@ -15,7 +14,6 @@ STAGE_ORDER = [
     ProductState.DISCOVERED,
     ProductState.DETAILS_EXTRACTED,
     ProductState.MEDIA_DOWNLOADED,
-    ProductState.MEDIA_OPTIMIZED,
     ProductState.POST_GENERATED,
     ProductState.PUBLISHED,
 ]
@@ -23,8 +21,7 @@ STAGE_ORDER = [
 STAGE_TO_QUEUE = {
     ProductState.DISCOVERED: "detail",
     ProductState.DETAILS_EXTRACTED: "media",
-    ProductState.MEDIA_DOWNLOADED: "optimize",
-    ProductState.MEDIA_OPTIMIZED: "post",
+    ProductState.MEDIA_DOWNLOADED: "post",
     ProductState.POST_GENERATED: "publish",
 }
 
@@ -39,7 +36,6 @@ class MediaKind(str, Enum):
 class MediaStatus(str, Enum):
     PENDING = "pending"
     DOWNLOADED = "downloaded"
-    OPTIMIZED = "optimized"
     UPLOADED = "uploaded"
     DELETED = "deleted"
 

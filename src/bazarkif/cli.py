@@ -14,7 +14,7 @@ def main(argv=None) -> int:
     parser.add_argument("--no-publish", action="store_true", help="build posts but do not send")
     parser.add_argument(
         "--until",
-        choices=["detail", "media", "optimize", "post", "publish"],
+        choices=["detail", "media", "post", "publish"],
         default=None,
         help="stop the scan after this stage (resumable partial runs)",
     )

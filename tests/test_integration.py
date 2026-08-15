@@ -71,9 +71,9 @@ def test_full_scan_to_published(config, db, monkeypatch):
     assert p["code"] == "9388"
     assert p["price"] == 2414000
     assert p["state"] == "POST_GENERATED"
-    # media downloaded & optimized
+    # media downloaded
     assert db.scalar(
-        "SELECT COUNT(*) FROM media_files WHERE product_id=? AND status='optimized'", (p["id"],)
+        "SELECT COUNT(*) FROM media_files WHERE product_id=? AND status='downloaded'", (p["id"],)
     ) >= 1
     # draft post generated
     posts = db.query("SELECT * FROM telegram_posts WHERE product_id=?", (p["id"],))
@@ -99,5 +99,5 @@ def test_full_scan_idempotent_rerun(config, db, monkeypatch):
     assert db.scalar("SELECT COUNT(*) FROM products") == 1
     assert db.scalar("SELECT COUNT(*) FROM telegram_posts") == 1
     assert db.scalar(
-        "SELECT COUNT(*) FROM media_files WHERE status='optimized'"
+        "SELECT COUNT(*) FROM media_files WHERE status='downloaded'"
     ) == db.scalar("SELECT COUNT(*) FROM media_files")

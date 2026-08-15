@@ -21,7 +21,7 @@ for %%m in (update fresh dry resume retry publish sample until daemon) do (
 if not defined VALID goto :usage
 
 if /i "%MODE%"=="until" (
-    for %%s in (detail media optimize post publish) do (
+    for %%s in (detail media post publish) do (
         if /i "%ARG2%"=="%%s" set STAGE_OK=1
     )
     if not defined STAGE_OK goto :usage
@@ -176,7 +176,7 @@ echo   retry                   force retry ALL failed jobs now, then update
 echo   publish                 send drafted POST_GENERATED cards only (no scan)
 echo   sample [N]              test mode: process only N products (default 3)
 echo   until ^<stage^>           partial run up to a stage (no publish), stage:
-echo                             detail | media | optimize | post
+echo                             detail | media | post
 echo   until publish            partial run through publish (sends cards)
 echo   daemon                   run the daily scheduler daemon
 echo.
@@ -185,7 +185,7 @@ echo   run.bat                  interactive menu
 echo   run.bat fresh            first-time full download on a new machine
 echo   run.bat retry            retry every failed item
 echo   run.bat sample 5         quick test with 5 products
-echo   run.bat until optimize   stop after WebP optimization
+echo   run.bat until post       stop after post generation
 echo.
 pause
 exit /b 0
