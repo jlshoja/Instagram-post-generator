@@ -46,12 +46,18 @@ python -m bazarkif.cli daemon
 ## Moving from VPS to Windows
 
 1. Transfer the project (via git, or `rsync -avz --exclude venv --exclude data --exclude .media --exclude logs ./ user@win:path/`).
-   `data/`, `.media/`, `logs/`, `venv/`, `.env` are git-ignored on purpose.
+   `.env`, `venv/`, `logs/`, `.media/` are git-ignored. **`data/mapping/pricing_sample.csv` is tracked**, so a fresh clone already has the pricing rules.
 2. On Windows: `py -3.12 -m venv venv && venv\Scripts\pip install -r requirements.txt`.
-3. **Full first run downloads everything:** delete `data/` (fresh SQLite) and run
-   `venv\Scripts\python -m bazarkif.cli --publish run-once`. All ~326 products are
-   downloaded, optimized, and sent to the Pending Posts topic.
-4. For a quick sanity test first: `SAMPLE_LIMIT=3 ... run-once`.
+   Then copy `config.example.env` to `.env` and fill in the Telegram values — the app **auto-loads `.env`** (no `source` needed on Windows).
+3. Run via `run.bat` (creates venv + installs deps + checks Telegram on first use):
+   - `run.bat fresh` — resets the database + media, then full first run: all ~326
+     products are downloaded, priced, and sent to the Pending Posts topic.
+     (Fresh resets only the DB/media; the tracked pricing file is preserved.)
+   - `run.bat` — subsequent full update + publish.
+   - `run.bat retry` — force-retry all failed jobs; `run.bat resume` — retry only due ones.
+   - `run.bat until <stage>` — partial/resumable runs (detail | media | optimize | post).
+   - `run.bat dry` — build posts without sending; `run.bat publish` — send drafts only.
+   - `run.bat sample [N]` — quick test with N products.
 
 ## Deployment (Phase 3 — Ubuntu VPS + Docker)
 

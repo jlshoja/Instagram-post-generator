@@ -23,6 +23,7 @@ def main(argv=None) -> int:
     sub.add_parser("run-once", help="run a single scan then exit")
     sub.add_parser("daemon", help="run the scheduler daemon")
     sub.add_parser("resume", help="requeue pending/failed jobs and run once")
+    sub.add_parser("retry-failed", help="force retry all failed jobs now, then run once")
     sub.add_parser("publish", help="send drafted POST_GENERATED cards to Telegram only")
 
     args = parser.parse_args(argv)
@@ -42,6 +43,12 @@ def main(argv=None) -> int:
 
     scanner = Scanner(config)
     if command == "resume":
+        scanner.resume()
+    elif command == "retry-failed":
+        forced = scanner.db.execute(
+            "UPDATE failed_jobs SET next_retry_at=datetime('now') WHERE resolved=0"
+        ).rowcount
+        print(f"forced {forced} failed job(s) to retry now")
         scanner.resume()
     elif command == "publish":
         from .models import ProductState

@@ -22,6 +22,29 @@ def _env_int(key: str, default: int) -> int:
         return default
 
 
+def _load_dotenv(path: Path) -> None:
+    """Load KEY=value lines from a .env file into os.environ without
+    overriding variables that are already set (real env wins)."""
+    if not path.exists():
+        return
+    try:
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, value = line.partition("=")
+                key = key.strip()
+                value = value.strip()
+                if not key:
+                    continue
+                if key in os.environ:
+                    continue
+                os.environ[key] = value
+    except OSError:
+        pass
+
+
 @dataclass
 class Config:
     base_url: str = "https://bazarkif.org"
@@ -77,6 +100,7 @@ class Config:
     @classmethod
     def from_env(cls) -> "Config":
         c = cls()
+        _load_dotenv(PROJECT_ROOT / ".env")
         c.base_url = os.environ.get("BASE_URL", c.base_url)
         c.shop_url = os.environ.get("SHOP_URL", c.shop_url)
         c.db_path = Path(os.environ.get("DB_PATH", str(c.db_path)))
