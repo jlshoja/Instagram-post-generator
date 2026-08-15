@@ -22,6 +22,8 @@ For the target store, determine the fastest, most robust method to extract:
    images) — see "Color Variations" below.
 3. Product media: featured image, gallery, raw/content images, video.
 4. Availability status per product and per variation.
+5. **Only in-stock products may be scraped** — out-of-stock items must be
+   filtered out (see "In-Stock Filtering" below).
 
 ## Rules
 
@@ -41,6 +43,21 @@ For the target store, determine the fastest, most robust method to extract:
   (status codes, JSON payloads, DOM structure, filter params).
 - Where the fastest path is not usable (e.g. authenticated API returning 401),
   say so explicitly and recommend the next-best path.
+
+## In-Stock Filtering (required)
+
+The scraper **must ignore out-of-stock products**:
+
+- When enumerating products from the shop/category listing, use the shop's own
+  stock filter parameter (`?stock_status=instock` on WooCommerce/WoodMart
+  shops) so **only in-stock products are discovered**. The pagination URL must
+  keep the stock filter on every page (`/page/N/?stock_status=instock`).
+- Re-verify on each product page: if the page reports out-of-stock
+  (e.g. `.out-of-stock` class or Persian `ناموجود`), skip that product even if
+  the listing still showed it.
+- Any product that disappears from the in-stock listing on a later run should
+  be flagged as unavailable (not deleted).
+- Report the **total number of in-stock products** found.
 
 ## Color Variations (required analysis)
 
@@ -65,7 +82,9 @@ A short recommendation document containing:
 1. Chosen extraction strategy (with reasoning and evidence).
 2. Endpoint/URL patterns + exact query parameters to use.
 3. The HTML/JSON locations of each required field (selectors or JSON paths).
-4. How availability is filtered and how colors/variations are discovered.
+4. How availability is filtered (in-stock-only via `?stock_status=instock`,
+   plus product-page out-of-stock verification) and how colors/variations are
+   discovered.
 5. Anything that makes this site differ from a "standard" WooCommerce store
    (custom plugins, S3 media host, non-standard SKU fields, etc.).
 6. Recommended scraping library stack (requests/httpx + BeautifulSoup vs

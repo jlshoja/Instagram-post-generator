@@ -2,7 +2,9 @@
 venv/
 __pycache__/
 *.pyc
-data/
+data/*
+!data/mapping/
+!data/mapping/*
 .media/
 logs/
 .pytest_cache/
