@@ -112,7 +112,7 @@ This one command:
 1. Creates the virtual environment + installs dependencies (first time only).
 2. Validates the Telegram configuration.
 3. Resets the local database and temp media.
-4. Discovers all ~326 in-stock products, downloads details + media,
+4. Discovers all ~325 in-stock products, downloads details + media,
    applies pricing, and publishes every card to the topic.
 
 It takes a few minutes for the full catalog. Progress is written to

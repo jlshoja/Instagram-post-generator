@@ -9,7 +9,7 @@ retryable at every stage.
 
 - **Phase 1 (Design):** complete — see `docs/`.
 - **Phase 2–4 (Implementation & Tests):** complete — 31 unit/integration tests
-  passing, live smoke-tested against bazarkif.org (326 products discovered, price
+  passing, live smoke-tested against bazarkif.org (325 products discovered, price
   parsing verified, WebP pipeline ~35–75 KB/images, cards render per template).
 - **Phase 5 (Production Readiness):** pending review.
 
@@ -31,7 +31,7 @@ Scheduler → Discovery → Detail → Media Download → Media Optimize
           → Post Generator → Telegram Publisher (Pending Posts)
 ```
 
-- **Discovery:** category pages + `?stock_status=instock`, paginated, dedup by URL.
+- **Discovery:** the shop page with `?stock_status=instock&per_page=500`, paginated, dedup by URL.
 - **Detail:** title/code (`کد \d+`), price (`<p class="price">`), attributes
   ("توضیحات تکمیلی" tab), gallery (`data-large_image`), Raw Content section
   (`محتوای خام (برای تبلیغات)`) images + video, all scoped to the store's

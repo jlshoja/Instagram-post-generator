@@ -49,6 +49,7 @@ def _load_dotenv(path: Path) -> None:
 class Config:
     base_url: str = "https://bazarkif.org"
     shop_url: str = "https://bazarkif.org/shop/"
+    shop_per_page: int = 500  # products read per shop page request
     user_agent: str = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
@@ -103,6 +104,7 @@ class Config:
         _load_dotenv(PROJECT_ROOT / ".env")
         c.base_url = os.environ.get("BASE_URL", c.base_url)
         c.shop_url = os.environ.get("SHOP_URL", c.shop_url)
+        c.shop_per_page = _env_int("SHOP_PER_PAGE", c.shop_per_page)
         c.db_path = Path(os.environ.get("DB_PATH", str(c.db_path)))
         c.media_root = Path(os.environ.get("MEDIA_ROOT", str(c.media_root)))
         c.log_dir = Path(os.environ.get("LOG_DIR", str(c.log_dir)))

@@ -29,26 +29,14 @@ class FakeHttp:
 
     def __init__(self):
         self.media_bytes = _png()
-        self.category_visits = 0
 
     def get_with_retry(self, url, **kw):
         class R:
             status_code = 200
             text = ""
         r = R()
-        if "/product-category/" in url:
-            self.category_visits += 1
-            next_link = (
-                '<a class="next" href="/product-category/x/page/2/?stock_status=instock"></a>'
-                if self.category_visits == 1
-                else ""
-            )
-            r.text = (
-                '<a href="https://bazarkif.org/product/9388/">p</a>'
-                + next_link
-            )
-        elif "/shop/" in url or url.rstrip("/").endswith("/shop"):
-            r.text = '<a href="https://bazarkif.org/product-category/%da%a9%db%8c%d9%81-%d8%b2%d9%86%d8%a7%d9%86%d9%87/">ک</a>'
+        if "/shop/" in url or url.rstrip("/").endswith("/shop"):
+            r.text = '<a href="https://bazarkif.org/product/9388/">p</a>'
         elif "/product/9388/" in url:
             r.text = self.PRODUCTS["https://bazarkif.org/product/9388/"]
         else:
@@ -70,7 +58,7 @@ def test_full_scan_to_published(config, db, monkeypatch):
     scanner = Scanner(config)
     scanner.db = db
     scanner.http = FakeHttp()
-    # discovery depends on the shop page returning categories
+    # discovery reads products straight from the paginated shop page
     scanner.discovery.http = scanner.http
     scanner.detail.http = scanner.http
     scanner.downloader.http = scanner.http

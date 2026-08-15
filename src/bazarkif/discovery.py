@@ -13,16 +13,6 @@ STOCK_PARAM = "?stock_status=instock"
 IN_STOCK_LABELS = {"موجود در انبار", "in-stock", "instock"}
 
 
-def _parse_category_links(html: str, base_url: str) -> set[str]:
-    soup = BeautifulSoup(html, "html.parser")
-    links = set()
-    for a in soup.find_all("a", href=True):
-        href = a["href"]
-        if "/product-category/" in href:
-            links.add(urljoin(base_url, href))
-    return links
-
-
 def _parse_product_links(html: str, base_url: str) -> set[str]:
     soup = BeautifulSoup(html, "html.parser")
     links = set()
@@ -42,46 +32,37 @@ class Discovery:
         self.http = http
         self.seen_urls: set[str] = set()
 
-    def discover_categories(self) -> list[str]:
-        resp, _, err = self.http.get_with_retry(self.config.shop_url, logger=logger)
-        if err:
-            raise err
-        cats = _parse_category_links(resp.text, self.config.base_url)
-        return sorted(cats)
-
     def discover_products(self, on_progress=None) -> int:
-        categories = self.discover_categories()
-        logger.info("discovered %d categories", len(categories))
-        all_urls: set[str] = set()
-        for cat in categories:
-            page_urls = self._crawl_category(cat)
-            all_urls |= page_urls
-            if on_progress:
-                on_progress(len(all_urls))
+        page_urls = self._crawl_shop()
+        logger.info("discovered %d product urls from shop", len(page_urls))
 
         inserted = 0
-        for url in sorted(all_urls):
+        for url in sorted(page_urls):
             self.seen_urls.add(url)
             inserted += self._upsert(url)
-        logger.info("discovery complete: %d product urls, %d inserted", len(all_urls), inserted)
+        logger.info("discovery complete: %d product urls, %d inserted", len(page_urls), inserted)
         return inserted
 
-    def _crawl_category(self, category_url: str) -> set[str]:
+    def _crawl_shop(self) -> set[str]:
         urls: set[str] = set()
         page = 1
         while True:
-            url = category_url + STOCK_PARAM
-            if page > 1:
-                # filter + pagination must both apply
-                base = category_url + f"/page/{page}/" + STOCK_PARAM
-                url = base
+            per_page = f"per_page={self.config.shop_per_page}"
+            if page == 1:
+                url = self.config.shop_url + STOCK_PARAM + "&" + per_page
+            else:
+                base = self.config.shop_url.rstrip("/") + f"/page/{page}/"
+                url = base + STOCK_PARAM + "&" + per_page
             resp, _, err = self.http.get_with_retry(url, logger=logger)
             if err:
-                logger.error("category page failed", extra={"url": url, "error": str(err)})
+                logger.error("shop page failed", extra={"url": url, "error": str(err)})
                 break
             found = _parse_product_links(resp.text, self.config.base_url)
+            new = found - urls
             urls |= found
-            if not _has_next_page(resp.text):
+            if not new:
+                break
+            if not _has_next_page(resp.text, page):
                 break
             page += 1
         return urls
@@ -102,12 +83,10 @@ class Discovery:
         return 1
 
 
-def _has_next_page(html: str) -> bool:
+def _has_next_page(html: str, current_page: int) -> bool:
     soup = BeautifulSoup(html, "html.parser")
-    for a in soup.find_all("a", class_="next"):
-        if a.get("href"):
-            return True
+    target = f"/page/{current_page + 1}/"
     for link in soup.find_all("a", href=True):
-        if "/page/" in link["href"]:
+        if target in link["href"]:
             return True
     return False
