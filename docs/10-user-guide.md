@@ -40,8 +40,10 @@ by `run.bat`.
 
 ### 1. Get the project
 
+The repository is **public**, so use HTTPS — no SSH key is needed:
+
 ```bat
-git clone git@github.com:jlshoja/Instagram-post-generator.git
+git clone https://github.com/jlshoja/Instagram-post-generator.git
 cd Instagram-post-generator
 ```
 

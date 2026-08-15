@@ -45,7 +45,11 @@ python -m bazarkif.cli daemon
 
 ## Moving from VPS to Windows
 
-1. Transfer the project (via git, or `rsync -avz --exclude venv --exclude data --exclude .media --exclude logs ./ user@win:path/`).
+1. Get the code on Windows (the repo is **public** — HTTPS needs no SSH key):
+   ```bat
+   git clone https://github.com/jlshoja/Instagram-post-generator.git
+   cd Instagram-post-generator
+   ```
    `.env`, `venv/`, `logs/`, `.media/` are git-ignored. **`data/mapping/pricing_sample.csv` is tracked**, so a fresh clone already has the pricing rules.
 2. On Windows: `py -3.12 -m venv venv && venv\Scripts\pip install -r requirements.txt`.
    Then copy `config.example.env` to `.env` and fill in the Telegram values — the app **auto-loads `.env`** (no `source` needed on Windows).
