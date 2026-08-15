@@ -97,6 +97,27 @@ def test_non_ascii_url_percent_encoded(config, db, product_id, monkeypatch):
     assert "ل" not in seen[0]  # no raw non-ascii bytes sent
 
 
+def test_transient_fetch_error_retried(config, db, product_id, monkeypatch):
+    seed_media(db, product_id)
+    calls = []
+
+    def _flaky(url, **kw):
+        calls.append(url)
+        if len(calls) < 3:
+            raise Exception("transient boom")
+        class R:
+            status_code = 200
+            content = _png_bytes()
+            headers = {"content-type": "image/png"}
+        return R()
+
+    http = HttpClient(config)
+    monkeypatch.setattr(http, "get", _flaky)
+    ok, _err = MediaDownloader(config, db, http).download_product(product_id)
+    assert ok
+    assert len(calls) >= 3  # the first file was retried before succeeding
+
+
 def test_dead_404_urls_marked_deleted(config, db, product_id, monkeypatch):
     seed_media(db, product_id)
 

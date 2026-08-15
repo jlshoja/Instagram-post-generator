@@ -1,4 +1,5 @@
 import logging
+import time
 from pathlib import Path
 from urllib.parse import quote, urlparse
 
@@ -75,10 +76,21 @@ class MediaDownloader:
         # percent-encode explicitly so non-ASCII (Persian) filenames are sent
         # in exactly the form the CDN expects regardless of proxy/urllib3 IRI handling
         request_url = quote(url, safe=":/?&=%")
-        try:
-            resp = self.http.get(request_url)
-        except Exception as e:
-            logger.warning("media fetch error", extra={"url": url, "error": str(e)})
+        # retry transient failures (network errors / 5xx) up to 3 attempts
+        resp = None
+        last_err = None
+        for attempt in range(3):
+            try:
+                resp = self.http.get(request_url)
+            except Exception as e:
+                resp = None
+                last_err = e
+            if resp is not None and resp.status_code < 500:
+                break
+            if attempt < 2:
+                time.sleep(1 + attempt)
+        if resp is None:
+            logger.warning("media fetch error", extra={"url": url, "error": str(last_err)})
             return False
         if resp.status_code in (404, 410):
             # permanently gone (e.g. stale raw-content links on the site):
