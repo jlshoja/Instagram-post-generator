@@ -64,6 +64,21 @@ TELEGRAM_THREAD_PENDING=6
 > `.env` is never committed to git. The app reads it automatically — on Windows
 > there is **no `source .env` step** needed.
 
+**Option A — copy the ready `.env` from the VPS** (recommended, no typing):
+
+```powershell
+scp root@91.239.211.45:/home/root/projects/Instagram-post-generator/.env "E:\Luxbaz\All Codes\Projects\Luxbaz Products\Instagram-post-generator\.env"
+```
+
+You'll be prompted for the VPS root password. Run it from the Windows project
+folder instead if you prefer a relative path:
+
+```powershell
+scp root@91.239.211.45:/home/root/projects/Instagram-post-generator/.env .env
+```
+
+**Option B — create `.env` by hand:** open the file, paste the values, save.
+
 ### 3. Do the full first download
 
 ```bat
