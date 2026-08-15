@@ -59,9 +59,9 @@ if errorlevel 1 (
 )
 
 rem ---- 2. .env --------------------------------------------------------
-if not exist .env (
+if not exist ".env" (
     echo [setup] creating .env from config.example.env
-    copy config.example.env .env >nul
+    copy config.example.env ".env" >nul
     echo.
     echo [WARN]  A fresh .env was created. You MUST edit it and set:
     echo        TELEGRAM_BOT_TOKEN=your_bot_token
@@ -89,7 +89,7 @@ if /i "%MODE%"=="fresh" (
     if exist data\bazarkif.db     del /q data\bazarkif.db
     if exist data\bazarkif.db-wal del /q data\bazarkif.db-wal
     if exist data\bazarkif.db-shm del /q data\bazarkif.db-shm
-    if exist .media rmdir /s /q .media
+    if exist ".media" rmdir /s /q ".media"
     set MODE=update
 )
 
