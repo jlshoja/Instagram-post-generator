@@ -199,4 +199,5 @@ echo   run.bat retry            retry every failed item
 echo   run.bat sample 5         quick test with 5 products
 echo   run.bat until optimize   stop after WebP optimization
 echo.
-exit /b 0
+pause
+exit /b 0
