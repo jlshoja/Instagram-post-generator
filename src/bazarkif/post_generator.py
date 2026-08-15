@@ -68,7 +68,6 @@ class PostGenerator:
         return True, text
 
     def _render(self, name, code, attrs: dict, offer: PricedOffer | None) -> str:
-        main_feature = self._main_feature(attrs)
         code_line = f"▫️ کد محصول: {code}\n\n" if code else ""
         specs_lines = self._spec_lines(attrs, code)
         if specs_lines:
@@ -78,19 +77,16 @@ class PostGenerator:
 
         price_line = self._price_line(offer) if offer else ""
 
-        parts = [
-            f"👜 <b>{self._esc(name)}</b>\n",
-            f"اگر دنبال یک {self._esc(main_feature)} هستی، این مدل می‌تواند انتخاب جذابی برات باشه ✨\n",
-            "<b>مشخصات محصول:</b>\n",
-        ]
+        parts = [f"👜 {self._esc(name)}\n\n"]
         if code_line:
             parts.append(code_line)
         if specs_block:
+            parts.append("💫مشخصات: \n\n")
             parts.append(specs_block)
         parts.append(price_line)
         parts.append(
-            f"🛍 <b>ثبت سفارش از ۳ طریق:</b>\n"
-            f"1️⃣ سایت: <b>{ORDER_SITE}</b>\n"
+            f"🛍 ثبت سفارش از ۳ طریق:\n\n"
+            f"1️⃣ سایت: {ORDER_SITE}\n"
             f"2️⃣ {INSTAGRAM}\n"
             f"3️⃣ {WHATSAPP}\n\n"
             f"🔗 لینک سایت و واتساپ در بیو\n\n"
@@ -110,18 +106,10 @@ class PostGenerator:
             original = format_price_toman(offer.original_price)
             return (
                 f"💰 <s>{original} تومان</s> 🔥 "
-                f"<b>قیمت: {price} تومان</b> "
+                f"قیمت: {price} تومان "
                 f"({offer.discount_percent}٪ تخفیف)\n\n"
             )
-        return f"💰 <b>قیمت: {price} تومان</b>\n\n"
-
-    def _main_feature(self, attrs: dict) -> str:
-        # a deterministic "main feature" phrase; fall back to generic
-        for key in ("جنس", "نوع", "کاربرد"):
-            val = attrs.get(key)
-            if val:
-                return f"کیف {val}".replace(",", "،")
-        return "کیف شیک و باکیفیت"
+        return f"💰 قیمت: {price} تومان\n\n"
 
     @staticmethod
     def _is_fabric_key(key) -> bool:

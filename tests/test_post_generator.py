@@ -27,7 +27,8 @@ def test_render_template(config, db, product_id):
     gen = PostGenerator(config, db)
     ok, text = gen.generate(product_id)
     assert ok
-    assert "👜 <b>کوله پشتی</b>" in text
+    assert "👜 کوله پشتی" in text
+    assert "💫مشخصات:" in text
     assert "کد محصول: 9388" in text
     assert "جنس رویه: چرم" in text
     assert "ابعاد: 45 × 30 × 10 سانتیمتر" in text
