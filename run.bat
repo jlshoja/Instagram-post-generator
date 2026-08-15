@@ -1,5 +1,5 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal
 cd /d "%~dp0"
 
 echo ============================================================
@@ -9,7 +9,6 @@ echo ============================================================
 rem ---- mode selection -------------------------------------------------
 set MODE=%1
 set ARG2=%2
-set ARG3=%3
 if "%MODE%"=="" set MODE=update
 if "%MODE%"=="-h"    goto :usage
 if "%MODE%"=="/?"    goto :usage
@@ -27,11 +26,7 @@ if /i "%MODE%"=="until" (
     if not defined STAGE_OK goto :usage
 )
 
-rem ---- optional pip mirror: 2nd or 3rd argument starting with http ----
-set "PIP_EXTRA="
-if /i not "%3"=="" if /i "%3:~0,4%"=="http" set "PIP_EXTRA=-i %3"
-if "%PIP_EXTRA%"=="" if /i not "%2"=="" if /i "%2:~0,4%"=="http" set "PIP_EXTRA=-i %2"
-if not "%PIP_EXTRA%"=="" echo [setup] pip install mirror: %PIP_EXTRA%
+rem mirror: set PIP_INDEX_URL in the shell before running (pip reads it natively)
 
 rem ---- 1. python / venv -------------------------------------------------
 if not exist venv\Scripts\python.exe (
@@ -50,11 +45,12 @@ rem install deps if missing (also retries after a failed first install)
 venv\Scripts\python -c "import requests,bs4,PIL,apscheduler" >nul 2>&1
 if errorlevel 1 (
     echo [setup] installing dependencies...
-    venv\Scripts\python -m pip install %PIP_EXTRA% -r requirements.txt
+    venv\Scripts\python -m pip install -r requirements.txt
     if errorlevel 1 (
         echo [ERROR] pip install failed.
-        echo          If PyPI is blocked, retry with a mirror, e.g.:
-        echo          run.bat fresh https://mirror-pypi.runflare.com/simple
+        echo          If PyPI is blocked, set PIP_INDEX_URL first, e.g.:
+        echo          $env:PIP_INDEX_URL="https://mirror-pypi.runflare.com/simple"
+        echo          then re-run. (or double-click first-run.bat)
         pause
         exit /b 1
     )
@@ -166,7 +162,7 @@ exit /b %EXIT%
 
 :usage
 echo.
-echo Usage:  run.bat [mode] [value] [pip-mirror-url]
+echo Usage:  run.bat [mode] [value]
 echo.
 echo   update                  full update: scan + build + publish all products
 echo   fresh                   reset database + media first, then full update
@@ -180,10 +176,10 @@ echo                             detail | media | optimize | post
 echo   until publish            partial run through publish (sends cards)
 echo   daemon                   run the daily scheduler daemon
 echo.
-echo Mirror: if pip cannot reach pythonhosted.org, either set PIP_INDEX_URL:
-echo         set PIP_INDEX_URL=https://mirror-pypi.runflare.com/simple
-echo         or append the mirror URL as a 2nd/3rd argument, e.g.
-echo         run.bat fresh https://mirror-pypi.runflare.com/simple
+echo Mirror: if pip cannot reach pythonhosted.org, set PIP_INDEX_URL in the
+echo         shell first (first-run.bat does this automatically):
+echo         PowerShell:  $env:PIP_INDEX_URL="https://mirror-pypi.runflare.com/simple"
+echo         Command:     set PIP_INDEX_URL=https://mirror-pypi.runflare.com/simple
 echo.
 echo Examples:
 echo   run.bat                  full update + publish
