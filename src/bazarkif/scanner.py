@@ -159,7 +159,7 @@ class Scanner:
                     self.retry.record_failure(pid, stage, str(e))
                 with lock:
                     done += 1
-                if done == total or done % 25 == 0:
+                if done == total or done % 5 == 0:
                     logger.info("stage %s progress: %d/%d", stage, done, total)
 
     def _mark_unavailable_removed(self) -> None:
