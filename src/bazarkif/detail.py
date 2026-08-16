@@ -125,6 +125,9 @@ def _parse_raw_content_media(html: str) -> tuple[list[str], list[str]]:
             continue
         if "logo" in url.lower() or "cropped" in url.lower():
             continue
+        # exclude slazzer background-removal watermarks/previews
+        if "slazzer" in url.lower() or "preview" in url.lower():
+            continue
         imgs.append(url)
     videos = list(dict.fromkeys(
         u for u in re.findall(r'https?://[^"\'\s<>]+\.mp4', seg) if MEDIA_HOST in u

@@ -103,7 +103,7 @@ class MediaDownloader:
         )
         self.db.execute(
             "UPDATE processing_state SET state=?, stage=?, updated_at=datetime('now') WHERE product_id=?",
-            (ProductState.MEDIA_DOWNLOADED.value, "optimize", product_id),
+            (ProductState.MEDIA_DOWNLOADED.value, "post", product_id),
         )
         return True, None
 

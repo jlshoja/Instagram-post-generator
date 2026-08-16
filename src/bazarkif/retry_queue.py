@@ -14,7 +14,6 @@ class RetryQueue:
         "discovery": None,  # discovery is handled by the scanner
         "detail": "detail",
         "media_download": "media",
-        "media_optimize": "optimize",
         "post_generate": "post",
         "telegram_publish": "publish",
     }

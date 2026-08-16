@@ -47,6 +47,18 @@ def test_parse_raw_content_excludes_related():
     assert vids == [VIDEO]
 
 
+def test_parse_raw_content_excludes_slazzer_preview():
+    html = build_product_html(
+        raw_imgs=(
+            "https://bazarkif-wordpress-3.s3.ir-thr-at1.arvanstorage.ir/2026/05/slazzer-preview-d7odh-1.png",
+            IMG_1,
+        )
+    )
+    imgs, vids = _parse_raw_content_media(html)
+    assert imgs == [IMG_1]
+    assert not any("slazzer" in u for u in imgs)
+
+
 def test_parse_raw_content_empty_when_no_raw():
     html = build_product_html(include_raw=False)
     imgs, vids = _parse_raw_content_media(html)
